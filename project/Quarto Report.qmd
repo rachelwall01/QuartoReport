@@ -1,0 +1,147 @@
+---
+title: "Health and Hydration"
+subtitle: "School Water Facilities Impact on Life Expectancy"
+author: "Rachel Wall"
+date: "2024-3-31"
+format: 
+  html:
+    theme: zephyr
+    toc: true
+execute: 
+  echo: false
+  warning: false
+  message: false
+
+---
+![](UNICEF_Logo.png) 
+
+## Introduction
+
+UNICEF uses data to drive better results for children across the world. The indicator being investigated in this report is the **Proportion (%) of Schools with Basic Drinking Water Facilities** in each country. This can be related to:
+
+- SDG 1 No Poverty
+- SDG 3 Good Health and Well-being
+- SDG 6 Clean Water and Sanitation
+- SDG 10 Reduced Inequalities.
+
+In wealthier nations, this might not seem like a big deal, but in many developing countries, especially during the summer, water scarcity is a problem. This report looks into data discrepancies between nations that experienced water scarcity and surplus in 2019, *prior* to the COVID-19 pandemic.
+
+![](SDG_LOGO2.png) 
+
+## Analysis
+
+### Water Scarcity: A Global Problem
+
+```{r}
+#| label: setup
+#| include: false
+
+# Libraries 
+library(tidyverse)
+library(plotly)
+
+#data
+unicef_metadata <- read.csv("unicef_metadata.csv")
+unicef_indicator_1 <- read.csv("unicef_indicator_1.csv")
+
+# Transformations
+merge_data <- merge(unicef_metadata, unicef_indicator_1, by.x = c("country", "year"), by.y = c("country", "time_period"))
+
+merge_data_2019 <- merge_data[merge_data$year == 2019,]
+```
+
+```{r}
+
+world_map <- map_data("world")
+
+world_map_data <- full_join(merge_data_2019, world_map, by = c("country" = "region"))            
+ggplot(world_map_data, aes(x = long, y = lat, group = group, fill = obs_value)) +
+  geom_polygon() +
+  scale_fill_gradient(low = "red", high = "orange", na.value = "grey") +
+  theme_bw() +
+  labs(fill = "Observation Value (%)") +
+  ggtitle("Proportion of Schools with Basic Drinking Water Facilities - 2019", subtitle = "Countries coloured grey have no data associated with them")
+
+```
+This map shows the proportion (%) of schools with basic drinking water facilities across the globe. It is clear to see that wealthy nations, such as European countries and Australia, have access to water facilities. The <span style="color:red;">**red colours**</span> in Northern Africa make it evident that these developing countries are struggling to provide safe drinking water facilities in schools. The map makes it clear to see that Northern Africa is the **most water-stressed** area of the world.
+
+
+
+
+### A True Look at Water-Stressed Countries
+
+```{r}
+#| fig-cap: "This graph shows the movement in the proportion (%) of schools with drinking water facilities across **North Africa** for the 10 year period 2009-2019. It is hoped that this statistic will continue to improve into the future. **Hover over a line to see more information about each country**."
+
+countries_of_interest <- c("Algeria", "Chad", "Libya", "Nigeria", "Tunisia", "Mali")
+merge_data_subset <- merge_data %>%
+  filter(year >= 2009 & year <= 2019 & country %in% countries_of_interest)
+
+time_series_plot_2 <- merge_data_subset %>%
+  ggplot() +
+  aes(x = year, y = obs_value, color = country) +
+  geom_line() +
+  labs(x = "Year", y = "Observed Value (%)") +
+  ggtitle("Proportion of Schools with Basic Drinking Water Facilities (2009-2019)") +
+  theme_bw() +
+  guides(color = FALSE) +
+  scale_x_continuous(breaks = seq(2009, 2019, 1), labels = as.integer(seq(2009, 2019, 1)))
+
+ggplotly(time_series_plot_2)
+
+```
+
+### Developed Vs Developing
+The following graphs highlight the difference in drinking water facilities in developing countries compared with developed countries. It is hoped that these disparities in data will reduce as UNICEF gets closer to its goal of ending poverty by 2030. 
+
+```{r}
+#| fig-cap: "The scatterplot highlights the relationship between life expectancy at birth and the availability of basic drinking water facilities in schools all over the world for the year 2019. The cluster of dots in the top right corner of the graph lead us to believe that having access to drinking water in education facilities increases life expectancy. **Hover over each dot on the graph to see more information.**"
+
+scatter_plot_2 <- merge_data_2019 %>%
+  ggplot() +
+  aes(x = obs_value, y = `Life.expectancy.at.birth..total..years.`) +
+  geom_point(aes(color = country)) +
+  labs(x = "Observation Value (%)", y = "Life Expectancy (years)") +
+  ggtitle("Relationship between Life Expectancy and Access to Drinking Water in 2019") +
+  theme_bw() +
+  guides(color = FALSE)
+  
+ggplotly(scatter_plot_2)
+```
+
+```{r}
+#| fig-cap: "It is clear to see from the bar chart that schools in these African countries are *lacking* basic amenities for providing clean drinking water."
+
+countries_of_interest <- c("Algeria", "Chad", "Libya", "Nigeria", "Tunisia", "Mali")
+merge_data_filtered <- merge_data_2019[merge_data_2019$country %in% countries_of_interest,]
+
+ggplot(merge_data_filtered, aes(x = country, y = obs_value)) +
+  geom_bar(stat = "identity", fill = "lightpink") +
+  labs(x = "Country", y = "Observation Value (%)") +
+  ggtitle("Proportion of Schools with Drinking Water Facilities in 2019") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  
+```
+
+```{r}
+#| fig-cap: "It is not unexpected that wealthy Northern European nations do *not* experience a shortage of water. In these countries, drinking water facilities are present in every school. The moderate climate experienced in these countries reduces the risk of water stress."
+
+countries_of_interest <- c("Belgium", "France", "Germany", "Poland", "Portugal", "Spain")
+merge_data_filtered <- merge_data_2019[merge_data_2019$country %in% countries_of_interest,]
+
+ggplot(merge_data_filtered, aes(x = country, y = obs_value)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(x = "Country", y = "Observation Value (%)") +
+  ggtitle("Proportion of Schools with Drinking Water Facilities in 2019") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))    
+```
+
+## Conclusion
+
+As we analyse the data above, there is a clear relationship between the **availability of drinking water facilities** and **life expectancy at birth**. The water-stressed countries of North Africa lack basic amenities in schools. This has an impact on the health of the nation and therefore results in a *shorter* life expectancy. The wealthier countries in Europe have more money to spend on facilities to improve the quality of life for the citizens.
+**It is UNICEF's aim to bridge the gap between first and third world countries by reducing inequalities across the globe.**
+
+
+
+
